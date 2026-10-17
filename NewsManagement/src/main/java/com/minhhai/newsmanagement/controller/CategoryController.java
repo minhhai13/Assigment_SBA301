@@ -1,15 +1,11 @@
 package com.minhhai.newsmanagement.controller;
 
+import com.minhhai.newsmanagement.dto.request.CategoryRequest;
 import com.minhhai.newsmanagement.service.CategoryService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/categories")
@@ -32,21 +28,17 @@ public class CategoryController {
     }
 
     @PostMapping
-    public ResponseEntity<?> createCategory() {
-        return notImplemented();
+    public ResponseEntity<?> createCategory(@Valid @RequestBody CategoryRequest request) {
+        return new ResponseEntity<>(categoryService.createCategory(request), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCategory(@PathVariable Long id) {
-        return notImplemented();
+    public ResponseEntity<?> updateCategory(@PathVariable Long id, @RequestBody CategoryRequest request) {
+        return new ResponseEntity<>(categoryService.updateCategory(id, request), HttpStatus.OK);
     }
-
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
-        return notImplemented();
-    }
-
-    private ResponseEntity<?> notImplemented() {
-        return ResponseEntity.status(HttpStatus.NOT_IMPLEMENTED).body("Chưa implement logic");
+        categoryService.deleteCategory(id);
+        return new ResponseEntity<>("Đã xoá category thành công", HttpStatus.OK);
     }
 }
