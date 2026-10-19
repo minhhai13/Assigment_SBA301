@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Container, Table, Button, Form, InputGroup, Badge } from "react-bootstrap";
+import { useState, useEffect } from "react";
+import { Container, Table, Button, Form, InputGroup, Badge, Alert } from "react-bootstrap";
 import { mockUsers } from "../shared/MockDatabase";
 import FormModal from "../components/FormModal";
 import ConfirmModal from "../components/ConfirmModal";
@@ -7,13 +7,35 @@ import ConfirmModal from "../components/ConfirmModal";
 export default function UserManage() {
    const [users, setUsers] = useState(mockUsers);
    const [searchTerm, setSearchTerm] = useState("");
+   const [message, setMessage] = useState("");
+   const [error, setError] = useState("");
    
    const [showForm, setShowForm] = useState(false);
    const [showConfirm, setShowConfirm] = useState(false);
    const [currentEdit, setCurrentEdit] = useState(null);
    const [deleteId, setDeleteId] = useState(null);
 
-   const [formData, setFormData] = useState({ username: "", name: "", role: 2, status: 1 });
+   const [formData, setFormData] = useState({ username: "", password: "", name: "", role: 2, status: 1 });
+
+   const token = localStorage.getItem("token");
+
+   const fetchUsers = async () => {
+      try {
+         const res = await fetch("http://localhost:8080/api/users", {
+            headers: token ? { "Authorization": `Bearer ${token}` } : {}
+         });
+         if (res.ok) {
+            const data = await res.json();
+            setUsers(data);
+         }
+      } catch (err) {
+         // Nếu chưa bật backend, giữ nguyên dữ liệu mockUsers
+      }
+   };
+
+   useEffect(() => {
+      fetchUsers();
+   }, []);
 
    const filteredData = users.filter(u => 
       u.username.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -22,28 +44,113 @@ export default function UserManage() {
 
    const handleOpenForm = (item = null) => {
       setCurrentEdit(item);
+      setError("");
+      setMessage("");
       if (item) {
-         setFormData({ username: item.username, name: item.name, role: item.role, status: item.status });
+         setFormData({ username: item.username, password: "", name: item.name, role: item.role, status: item.status });
       } else {
-         setFormData({ username: "", name: "", role: 2, status: 1 });
+         setFormData({ username: "", password: "", name: "", role: 2, status: 1 });
       }
       setShowForm(true);
    };
 
-   const handleSubmitForm = () => {
+   const handleSubmitForm = async () => {
+      setError("");
+      setMessage("");
       if (currentEdit) {
+         // Update
+         try {
+            const res = await fetch(`http://localhost:8080/api/users/${currentEdit.id}`, {
+               method: "PUT",
+               headers: {
+                  "Content-Type": "application/json",
+                  ...(token ? { "Authorization": `Bearer ${token}` } : {})
+               },
+               body: JSON.stringify(formData)
+            });
+            if (res.ok) {
+               fetchUsers();
+               setMessage("Cập nhật tài khoản thành công!");
+               setShowForm(false);
+               return;
+            }
+         } catch (e) {}
+
+         // Fallback local update
          setUsers(users.map(u => u.id === currentEdit.id ? { ...u, ...formData } : u));
+         setMessage("Cập nhật tài khoản thành công!");
       } else {
+         // Create
+         try {
+            const res = await fetch("http://localhost:8080/api/users", {
+               method: "POST",
+               headers: {
+                  "Content-Type": "application/json",
+                  ...(token ? { "Authorization": `Bearer ${token}` } : {})
+               },
+               body: JSON.stringify(formData)
+            });
+            if (res.ok) {
+               fetchUsers();
+               setMessage("Tạo mới tài khoản thành công!");
+               setShowForm(false);
+               return;
+            } else {
+               const errData = await res.json();
+               setError(errData.message || "Tạo tài khoản thất bại!");
+               return;
+            }
+         } catch (e) {}
+
+         // Fallback local create
          const newId = users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1;
          setUsers([...users, { id: newId, ...formData }]);
+         setMessage("Tạo mới tài khoản thành công!");
       }
       setShowForm(false);
    };
 
-   const handleConfirmDelete = () => {
+   const handleConfirmDelete = async () => {
+      setError("");
+      setMessage("");
+      try {
+         const res = await fetch(`http://localhost:8080/api/users/${deleteId}`, {
+            method: "DELETE",
+            headers: token ? { "Authorization": `Bearer ${token}` } : {}
+         });
+         if (res.ok) {
+            fetchUsers();
+            setMessage("Đã xóa tài khoản thành công!");
+            setShowConfirm(false);
+            return;
+         } else {
+            const errData = await res.json();
+            setError(errData.message || "Không thể xóa tài khoản!");
+         }
+      } catch (e) {}
+
       setUsers(users.filter(u => u.id !== deleteId));
+      setMessage("Đã xóa tài khoản thành công!");
       setShowConfirm(false);
    };
+
+   let currentUser = null;
+   try {
+      currentUser = JSON.parse(localStorage.getItem("user") || "null");
+   } catch (e) {}
+
+   // Nếu tài khoản là Staff (role !== 1), từ chối truy cập
+   if (currentUser && currentUser.role !== 1) {
+      return (
+         <Container fluid className="py-5 text-center">
+            <div className="p-5 rounded bg-dark border border-danger text-light shadow-lg d-inline-block" style={{ maxWidth: "600px" }}>
+               <h3 className="text-danger fw-bold mb-3">⛔ Quyền truy cập bị từ chối</h3>
+               <p className="fs-5">Chức năng <strong>Quản lý Tài khoản (User Management)</strong> chỉ dành riêng cho <strong>Quản trị viên (Admin)</strong>.</p>
+               <p className="text-secondary mb-0">Tài khoản hiện tại của bạn là <Badge bg="info">Staff</Badge>, bạn không có quyền xem hoặc chỉnh sửa danh sách người dùng.</p>
+            </div>
+         </Container>
+      );
+   }
 
    return (
       <Container fluid>
@@ -53,6 +160,9 @@ export default function UserManage() {
                + Thêm Tài Khoản
             </Button>
          </div>
+
+         {message && <Alert variant="success" dismissible onClose={() => setMessage("")}>{message}</Alert>}
+         {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
 
          <InputGroup className="mb-4" style={{ width: "350px" }}>
             <Form.Control 
@@ -111,6 +221,10 @@ export default function UserManage() {
                <Form.Group className="mb-3">
                   <Form.Label>Username</Form.Label>
                   <Form.Control type="text" className="bg-dark text-white border-secondary" value={formData.username} onChange={e => setFormData({...formData, username: e.target.value})} disabled={!!currentEdit} />
+               </Form.Group>
+               <Form.Group className="mb-3">
+                  <Form.Label>Mật khẩu {currentEdit && "(Để trống nếu không muốn đổi)"}</Form.Label>
+                  <Form.Control type="password" placeholder={currentEdit ? "Nhập mật khẩu mới..." : "Nhập mật khẩu (mặc định 123456)..."} className="bg-dark text-white border-secondary" value={formData.password} onChange={e => setFormData({...formData, password: e.target.value})} />
                </Form.Group>
                <Form.Group className="mb-3">
                   <Form.Label>Họ và Tên</Form.Label>

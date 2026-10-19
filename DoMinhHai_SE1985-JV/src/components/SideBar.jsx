@@ -2,6 +2,13 @@ import { Nav } from "react-bootstrap";
 import { NavLink } from "react-router";
 
 export default function Sidebar() {
+   let currentUser = null;
+   try {
+      currentUser = JSON.parse(localStorage.getItem("user") || "null");
+   } catch (e) {}
+
+   const isAdmin = currentUser?.role === 1;
+
    return (
       <div 
          className="p-3 d-flex flex-column border-end border-secondary shadow" 
@@ -20,9 +27,13 @@ export default function Sidebar() {
             <Nav.Link as={NavLink} to="/news" className="nav-link-glow p-2">
                News
             </Nav.Link>
-            <Nav.Link as={NavLink} to="/users" className="nav-link-glow p-2">
-               Users
-            </Nav.Link>
+            
+            {/* Menu Quản lý Users chỉ hiển thị cho Admin (Role 1) */}
+            {isAdmin && (
+               <Nav.Link as={NavLink} to="/users" className="nav-link-glow p-2">
+                  Users
+               </Nav.Link>
+            )}
             
             <hr className="border-secondary my-2 opacity-50" />
             

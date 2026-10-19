@@ -16,10 +16,12 @@ import java.util.List;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @Entity
 @Table(name = "user_accounts")
 public class UserAccount {
+
+    public UserAccount() {
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
