@@ -33,7 +33,7 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCategory(@PathVariable Long id, @RequestBody CategoryRequest request) {
+    public ResponseEntity<?> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
         return new ResponseEntity<>(categoryService.updateCategory(id, request), HttpStatus.OK);
     }
     @DeleteMapping("/{id}")
