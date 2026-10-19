@@ -15,7 +15,6 @@ import lombok.Setter;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @Entity
 @Table(name = "news_articles")
 public class NewsArticle {

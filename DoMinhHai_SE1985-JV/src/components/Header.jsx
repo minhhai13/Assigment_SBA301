@@ -3,8 +3,14 @@ import { Link, useNavigate } from "react-router";
 import logo from "../images/NMS.png" 
 export default function Header() {
    const navigate = useNavigate();
+   let currentUser = null;
+   try {
+      currentUser = JSON.parse(localStorage.getItem("user") || "null");
+   } catch (e) {}
 
    const handleLogout = () => {
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
       navigate("/login");
    };
 
@@ -29,7 +35,7 @@ export default function Header() {
                </Nav>
                
                <Navbar.Text className="me-3 text-light">
-                  Hello!
+                  Xin chào, <strong className="text-info">{currentUser?.name || currentUser?.username || "Admin"}</strong>!
                </Navbar.Text>
                
                <Button variant="outline-light" size="sm" className="glow-on-hover" onClick={handleLogout}>

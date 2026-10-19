@@ -19,10 +19,12 @@ import java.util.List;
 
 @Getter
 @Setter
-@NoArgsConstructor
 @Entity
 @Table(name = "categories")
 public class Category {
+
+    public Category() {
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

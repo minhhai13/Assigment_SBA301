@@ -8,12 +8,40 @@ export default function Login() {
    const [error, setError] = useState("");
    const navigate = useNavigate();
 
-   const handleLogin = (e) => {
+   const handleLogin = async (e) => {
       e.preventDefault();
-      if (username === "Admin" && password === "Admin") {
-         navigate("/");
-      } else {
-         setError("Tài khoản hoặc mật khẩu không chính xác!");
+      setError("");
+
+      try {
+         const res = await fetch("http://localhost:8080/api/auth/login", {
+            method: "POST",
+            headers: {
+               "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username, password })
+         });
+
+         const data = await res.json();
+
+         if (res.ok) {
+            localStorage.setItem("token", data.token);
+            localStorage.setItem("user", JSON.stringify(data));
+            navigate("/");
+         } else {
+            setError(data.message || "Tài khoản hoặc mật khẩu không chính xác!");
+         }
+      } catch (err) {
+         // Fallback ngoại tuyến nếu Backend chưa khởi động
+         if (
+            (username === "Admin" && password === "Admin") ||
+            (username === "Staff1" && password === "123") ||
+            (username === "Staff2" && password === "123")
+         ) {
+            localStorage.setItem("user", JSON.stringify({ username, name: username, role: username === "Admin" ? 1 : 2 }));
+            navigate("/");
+         } else {
+            setError("Tài khoản hoặc mật khẩu không chính xác!");
+         }
       }
    };
 
@@ -32,7 +60,7 @@ export default function Login() {
                      <Form.Label className="text-light">Username</Form.Label>
                      <Form.Control 
                         type="text" 
-                        placeholder="Enter Admin" 
+                        placeholder="Admin, Staff1, Staff2..." 
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         className="bg-dark text-white border-secondary"
@@ -43,7 +71,7 @@ export default function Login() {
                      <Form.Label className="text-light">Password</Form.Label>
                      <Form.Control 
                         type="password" 
-                        placeholder="Enter Admin" 
+                        placeholder="Mật khẩu (Admin hoặc 123)" 
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="bg-dark text-white border-secondary"
