@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -31,7 +32,11 @@ public class NewsServiceImpl implements NewsService {
 
     @Override
     public List<NewsResponse> getAllNews() {
-        return newsArticleRepository.findAll().stream().map(NewsResponse::from).toList();
+        List<NewsResponse> result = new ArrayList<>();
+        for (NewsArticle article : newsArticleRepository.findAll()) {
+            result.add(NewsResponse.from(article));
+        }
+        return result;
     }
 
     @Override
@@ -48,10 +53,13 @@ public class NewsServiceImpl implements NewsService {
         }
         Long catId = article.getCategory().getId();
         Long authorId = article.getAuthor().getId();
+
         Category category = categoryRepository.findById(catId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category with id " + catId + " not found"));
+
         UserAccount author = userAccountRepository.findById(authorId).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.BAD_REQUEST, "Author with id " + authorId + " not found"));
+
         article.setCategory(category);
         article.setAuthor(author);
         if (article.getStatus() == null) article.setStatus(1);
@@ -63,17 +71,23 @@ public class NewsServiceImpl implements NewsService {
     public NewsResponse updateNews(Long id, NewsArticle request) {
         NewsArticle article = newsArticleRepository.findById(id).orElseThrow(() ->
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy bài viết id: " + id));
+
         if (request.getTitle() != null) article.setTitle(request.getTitle());
         if (request.getTags() != null) article.setTags(request.getTags());
         if (request.getStatus() != null) article.setStatus(request.getStatus());
+
         if (request.getCategory() != null && request.getCategory().getId() != null) {
-            Category category = categoryRepository.findById(request.getCategory().getId()).orElse(null);
-            if (category != null) article.setCategory(category);
+            Long  catId = request.getCategory().getId();
+            Category category = categoryRepository.findById(catId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Category with id " + catId + " not found"));
+            article.setCategory(category);
         }
+
         if (request.getAuthor() != null && request.getAuthor().getId() != null) {
-            UserAccount author = userAccountRepository.findById(request.getAuthor().getId()).orElse(null);
-            if (author != null) article.setAuthor(author);
+            Long authorId = request.getAuthor().getId();
+            UserAccount author = userAccountRepository.findById(authorId).orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Author with id " + authorId + " not found"));
+            article.setAuthor(author);
         }
+
         NewsArticle saved = newsArticleRepository.save(article);
         return NewsResponse.from(saved);
     }

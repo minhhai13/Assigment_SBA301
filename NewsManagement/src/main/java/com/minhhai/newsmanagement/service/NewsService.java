@@ -7,12 +7,8 @@ import java.util.List;
 
 public interface NewsService {
     List<NewsResponse> getAllNews();
-
     NewsResponse getNewsById(Long id);
-
     NewsResponse createNews(NewsArticle newsArticle);
-
     NewsResponse updateNews(Long id, NewsArticle request);
-
     void deleteNews(Long id);
 }
