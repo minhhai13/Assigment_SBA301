@@ -1,18 +1,18 @@
 package com.minhhai.newsmanagement.service;
 
+import com.minhhai.newsmanagement.dto.response.NewsResponse;
 import com.minhhai.newsmanagement.entity.NewsArticle;
 
 import java.util.List;
-import java.util.Map;
 
 public interface NewsService {
-    List<NewsArticle> getAllNews();
+    List<NewsResponse> getAllNews();
 
-    NewsArticle getNewsById(Long id);
+    NewsResponse getNewsById(Long id);
 
-    NewsArticle createNews(Map<String, Object> body);
+    NewsResponse createNews(NewsArticle newsArticle);
 
-    NewsArticle updateNews(Long id, Map<String, Object> body);
+    NewsResponse updateNews(Long id, NewsArticle request);
 
     void deleteNews(Long id);
 }
