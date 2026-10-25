@@ -1,41 +1,32 @@
-import { Navbar, Container, Nav, Button } from "react-bootstrap";
+import { Navbar, Container, Button } from "react-bootstrap";
 import { Link, useNavigate } from "react-router";
-import logo from "../images/NMS.png" 
+import logo from "../images/NMS.png";
+import { useAuth } from "../auth/AuthContext";
+import { ROLE_LABEL } from "../constants";
+
 export default function Header() {
+   const { user, logout } = useAuth();
    const navigate = useNavigate();
 
    const handleLogout = () => {
+      logout();
       navigate("/login");
    };
 
    return (
-      <Navbar style={{ backgroundColor: 'var(--bg-panel)' }} className="border-bottom border-secondary shadow-sm py-2" sticky="top">
+      <Navbar bg="white" className="border-bottom shadow-sm py-2">
          <Container fluid className="px-4">
-            <Navbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2 glow-on-hover rounded-circle p-1">
-               <img
-                  src={logo}
-                  alt="FUNews Logo"
-                  width="40"
-                  height="40"
-                  className="rounded-circle object-fit-cover"
-               />
+            <Navbar.Brand as={Link} to="/" className="d-flex align-items-center gap-2">
+               <img src={logo} alt="FUNews" width="40" height="40" className="rounded-circle object-fit-cover" />
+               <span className="fw-bold fs-5">FUNews</span>
             </Navbar.Brand>
-            <span className="fw-bold text-white fs-5">FUNews Admin</span>
-            
-            <Navbar.Collapse className="justify-content-end">
-               <Nav className="me-4">
-                  <Nav.Link as={Link} to="/about" className="nav-link-glow px-3">About</Nav.Link>
-                  <Nav.Link as={Link} to="/contact" className="nav-link-glow px-3">Contact</Nav.Link>
-               </Nav>
-               
-               <Navbar.Text className="me-3 text-light">
-                  Hello!
-               </Navbar.Text>
-               
-               <Button variant="outline-light" size="sm" className="glow-on-hover" onClick={handleLogout}>
-                  Logout
-               </Button>
-            </Navbar.Collapse>
+            <div className="d-flex align-items-center gap-3">
+               <Link to="/public" className="text-decoration-none">Trang đọc tin</Link>
+               <span>
+                  {user.name} <span className="badge text-bg-secondary">{ROLE_LABEL[user.role]}</span>
+               </span>
+               <Button variant="outline-dark" size="sm" onClick={handleLogout}>Đăng xuất</Button>
+            </div>
          </Container>
       </Navbar>
    );

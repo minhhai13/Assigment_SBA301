@@ -17,5 +17,9 @@ export default defineConfig([
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
+    rules: {
+      // Mẫu "tải dữ liệu trong useEffect rồi setState" là cách dùng thông thường của bài này.
+      'react-hooks/set-state-in-effect': 'off',
+    },
   },
 ])

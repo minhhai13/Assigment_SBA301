@@ -5,12 +5,10 @@ import Footer from "./Footer";
 
 export default function Layout() {
    return (
-      <div className="d-flex flex-column vh-100 vw-100 overflow-hidden" style={{ backgroundColor: 'var(--bg-dark-blue)' }}>
+      <div className="d-flex flex-column vh-100 overflow-hidden">
          <Header />
-         
          <div className="d-flex flex-grow-1 overflow-hidden">
             <Sidebar />
-            
             <div className="d-flex flex-column flex-grow-1 overflow-auto">
                <main className="flex-grow-1 p-4">
                   <Outlet />

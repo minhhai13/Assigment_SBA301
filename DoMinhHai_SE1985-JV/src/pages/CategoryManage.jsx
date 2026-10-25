@@ -1,138 +1,132 @@
-import { useState } from "react";
-import { Container, Table, Button, Form, InputGroup, Badge } from "react-bootstrap";
-import { mockCategories } from "../shared/MockDatabase";
+import { useCallback, useEffect, useState } from "react";
+import { Container, Table, Button, Form, Badge, Alert } from "react-bootstrap";
+import { api } from "../api";
 import FormModal from "../components/FormModal";
 import ConfirmModal from "../components/ConfirmModal";
 
+const EMPTY = { name: "", description: "", status: 1, parentCategoryId: "" };
+
 export default function CategoryManage() {
-   const [categories, setCategories] = useState(mockCategories);
-   const [searchTerm, setSearchTerm] = useState("");
-   
-   // State quản lý Modal
+   const [categories, setCategories] = useState([]);
+   const [search, setSearch] = useState("");
+   const [error, setError] = useState("");
+   const [info, setInfo] = useState("");
+   const [formError, setFormError] = useState("");
    const [showForm, setShowForm] = useState(false);
-   const [showConfirm, setShowConfirm] = useState(false);
-   const [currentEdit, setCurrentEdit] = useState(null); // null = Create, object = Update
-   const [deleteId, setDeleteId] = useState(null);
+   const [editing, setEditing] = useState(null);
+   const [form, setForm] = useState(EMPTY);
+   const [deleting, setDeleting] = useState(null);
 
-   // State Form Data
-   const [formData, setFormData] = useState({ name: "", description: "", status: 1 });
-
-   // Tìm kiếm
-   const filteredData = categories.filter(c => 
-      c.name.toLowerCase().includes(searchTerm.toLowerCase())
-   );
-
-   // Xử lý Form Thêm/Sửa
-   const handleOpenForm = (item = null) => {
-      setCurrentEdit(item);
-      if (item) {
-         setFormData({ name: item.name, description: item.description, status: item.status });
-      } else {
-         setFormData({ name: "", description: "", status: 1 });
+   const load = useCallback(async () => {
+      try {
+         setCategories(await api("/categories"));
+      } catch (e) {
+         setError(e.message);
       }
+   }, []);
+
+   useEffect(() => {
+      load();
+   }, [load]);
+
+   const nameOf = (id) => categories.find((c) => c.id === id)?.name ?? "-";
+   const filtered = categories.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
+
+   const openForm = (item = null) => {
+      setEditing(item);
+      setFormError("");
+      setForm(item
+         ? { name: item.name, description: item.description ?? "", status: item.status, parentCategoryId: item.parentCategoryId ?? "" }
+         : EMPTY);
       setShowForm(true);
    };
 
-   const handleSubmitForm = () => {
-      if (currentEdit) {
-         // Cập nhật
-         setCategories(categories.map(c => c.id === currentEdit.id ? { ...c, ...formData } : c));
-      } else {
-         // Thêm mới
-         const newId = categories.length > 0 ? Math.max(...categories.map(c => c.id)) + 1 : 1;
-         setCategories([...categories, { id: newId, ...formData }]);
+   const submit = async () => {
+      try {
+         const body = { ...form, status: Number(form.status), parentCategoryId: form.parentCategoryId ? Number(form.parentCategoryId) : null };
+         if (editing) await api(`/categories/${editing.id}`, { method: "PUT", body });
+         else await api("/categories", { method: "POST", body });
+         setShowForm(false);
+         load();
+      } catch (e) {
+         setFormError(e.message);
       }
-      setShowForm(false);
    };
 
-   // Xử lý Xóa
-   const handleConfirmDelete = () => {
-      setCategories(categories.filter(c => c.id !== deleteId));
-      setShowConfirm(false);
+   const confirmDelete = async () => {
+      try {
+         const res = await api(`/categories/${deleting.id}`, { method: "DELETE" });
+         setInfo(res.message);
+      } catch (e) {
+         setError(e.message);
+      }
+      setDeleting(null);
+      load();
    };
 
    return (
       <Container fluid>
          <div className="d-flex justify-content-between align-items-center mb-4">
-            <h2 className="text-white fw-bold">Quản lý Danh mục</h2>
-            <Button variant="light" className="glow-on-hover fw-bold" onClick={() => handleOpenForm()}>
-               + Thêm Danh Mục
-            </Button>
+            <h2 className="fw-bold mb-0">Quản lý Danh mục</h2>
+            <Button onClick={() => openForm()}>+ Thêm danh mục</Button>
          </div>
+         {error && <Alert variant="danger" dismissible onClose={() => setError("")}>{error}</Alert>}
+         {info && <Alert variant="info" dismissible onClose={() => setInfo("")}>{info}</Alert>}
+         <Form.Control className="mb-3" style={{ maxWidth: 300 }} placeholder="Tìm kiếm danh mục..." value={search} onChange={(e) => setSearch(e.target.value)} />
 
-         <InputGroup className="mb-4" style={{ width: "300px" }}>
-            <Form.Control 
-               placeholder="Tìm kiếm danh mục..." 
-               className="bg-dark text-white border-secondary"
-               onChange={(e) => setSearchTerm(e.target.value)}
-            />
-         </InputGroup>
-
-         <Table hover variant="dark" className="border-secondary align-middle shadow-sm">
+         <Table bordered hover responsive className="bg-white align-middle">
             <thead>
-               <tr>
-                  <th>ID</th>
-                  <th>Tên danh mục</th>
-                  <th>Mô tả</th>
-                  <th>Trạng thái</th>
-                  <th className="text-end">Hành động</th>
-               </tr>
+               <tr><th>ID</th><th>Tên</th><th>Mô tả</th><th>Danh mục cha</th><th>Trạng thái</th><th style={{ width: 160 }}>Thao tác</th></tr>
             </thead>
             <tbody>
-               {filteredData.map(c => (
+               {filtered.map((c) => (
                   <tr key={c.id}>
                      <td>{c.id}</td>
-                     <td className="fw-bold">{c.name}</td>
-                     <td className="text-secondary">{c.description}</td>
-                     <td>
-                        <Badge bg={c.status === 1 ? "success" : "secondary"}>
-                           {c.status === 1 ? "Active" : "Inactive"}
-                        </Badge>
-                     </td>
-                     <td className="text-end">
-                        <Button variant="outline-info" size="sm" className="me-2" onClick={() => handleOpenForm(c)}>Sửa</Button>
-                        <Button variant="outline-danger" size="sm" onClick={() => { setDeleteId(c.id); setShowConfirm(true); }}>Xóa</Button>
-                     </td>
+                     <td>{c.name}</td>
+                     <td>{c.description}</td>
+                     <td>{c.parentCategoryId ? nameOf(c.parentCategoryId) : "-"}</td>
+                     <td><Badge bg={c.status === 1 ? "success" : "secondary"}>{c.status === 1 ? "Hoạt động" : "Vô hiệu hóa"}</Badge></td>
+                     <td><div className="d-flex gap-2">
+                        <Button size="sm" variant="outline-primary" onClick={() => openForm(c)}>Sửa</Button>
+                        <Button size="sm" variant="outline-danger" onClick={() => setDeleting(c)}>Xóa</Button>
+                     </div></td>
                   </tr>
                ))}
-               {filteredData.length === 0 && (
-                  <tr><td colSpan="5" className="text-center text-secondary py-3">Không tìm thấy dữ liệu</td></tr>
-               )}
             </tbody>
          </Table>
 
-         {/* Sử dụng Component Modal dùng chung */}
-         <FormModal 
-            show={showForm} 
-            onHide={() => setShowForm(false)} 
-            onSubmit={handleSubmitForm}
-            title={currentEdit ? "Cập nhật Danh mục" : "Thêm Danh mục mới"}
-         >
-            <Form>
-               <Form.Group className="mb-3">
-                  <Form.Label>Tên danh mục</Form.Label>
-                  <Form.Control type="text" className="bg-dark text-white border-secondary" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} />
-               </Form.Group>
-               <Form.Group className="mb-3">
-                  <Form.Label>Mô tả</Form.Label>
-                  <Form.Control as="textarea" rows={3} className="bg-dark text-white border-secondary" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} />
-               </Form.Group>
-               <Form.Group>
-                  <Form.Label>Trạng thái</Form.Label>
-                  <Form.Select className="bg-dark text-white border-secondary" value={formData.status} onChange={e => setFormData({...formData, status: Number(e.target.value)})}>
-                     <option value={1}>Active</option>
-                     <option value={0}>Inactive</option>
-                  </Form.Select>
-               </Form.Group>
-            </Form>
+         <FormModal show={showForm} onHide={() => setShowForm(false)} title={editing ? "Sửa danh mục" : "Thêm danh mục"} onSubmit={submit} error={formError} size="md">
+            <Form.Group className="mb-3">
+               <Form.Label>Tên *</Form.Label>
+               <Form.Control value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+               <Form.Label>Mô tả</Form.Label>
+               <Form.Control as="textarea" rows={2} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} />
+            </Form.Group>
+            <Form.Group className="mb-3">
+               <Form.Label>Danh mục cha</Form.Label>
+               <Form.Select value={form.parentCategoryId} onChange={(e) => setForm({ ...form, parentCategoryId: e.target.value })}>
+                  <option value="">-- Không có --</option>
+                  {categories.filter((c) => c.id !== editing?.id).map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+               </Form.Select>
+            </Form.Group>
+            <Form.Group>
+               <Form.Label>Trạng thái</Form.Label>
+               <Form.Select value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
+                  <option value={1}>Hoạt động</option>
+                  <option value={0}>Vô hiệu hóa</option>
+               </Form.Select>
+            </Form.Group>
          </FormModal>
 
-         <ConfirmModal 
-            show={showConfirm} 
-            onHide={() => setShowConfirm(false)} 
-            onConfirm={handleConfirmDelete}
-            title="Xác nhận xóa danh mục"
-            message="Danh mục này sẽ bị xóa vĩnh viễn. Bạn có chắc chắn không?"
+         <ConfirmModal
+            show={!!deleting}
+            onHide={() => setDeleting(null)}
+            onConfirm={confirmDelete}
+            title="Xóa danh mục"
+            message={`Xóa "${deleting?.name}"? Nếu danh mục đang được dùng, hệ thống sẽ vô hiệu hóa thay vì xóa.`}
+            confirmText="Đồng ý"
          />
       </Container>
    );

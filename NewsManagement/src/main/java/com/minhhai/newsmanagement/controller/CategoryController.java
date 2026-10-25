@@ -1,11 +1,15 @@
 package com.minhhai.newsmanagement.controller;
 
-import com.minhhai.newsmanagement.dto.request.CategoryRequest;
+import com.minhhai.newsmanagement.dto.CategoryRequest;
+import com.minhhai.newsmanagement.dto.CategoryResponse;
 import com.minhhai.newsmanagement.service.CategoryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/categories")
@@ -18,27 +22,29 @@ public class CategoryController {
     }
 
     @GetMapping
-    public ResponseEntity<?> getCategories() {
-        return new ResponseEntity<>(categoryService.getCategories(), HttpStatus.OK);
+    public List<CategoryResponse> list(Authentication auth) {
+        boolean admin = auth != null && auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        return categoryService.list(admin);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getCategoryById(@PathVariable Long id) {
-        return new ResponseEntity<>(categoryService.findCategoryById(id), HttpStatus.OK);
+    public CategoryResponse get(@PathVariable Long id) {
+        return categoryService.get(id);
     }
 
     @PostMapping
-    public ResponseEntity<?> createCategory(@Valid @RequestBody CategoryRequest request) {
-        return new ResponseEntity<>(categoryService.createCategory(request), HttpStatus.CREATED);
+    @ResponseStatus(HttpStatus.CREATED)
+    public CategoryResponse create(@Valid @RequestBody CategoryRequest request) {
+        return categoryService.create(request);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateCategory(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
-        return new ResponseEntity<>(categoryService.updateCategory(id, request), HttpStatus.OK);
+    public CategoryResponse update(@PathVariable Long id, @Valid @RequestBody CategoryRequest request) {
+        return categoryService.update(id, request);
     }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteCategory(@PathVariable Long id) {
-        categoryService.deleteCategory(id);
-        return new ResponseEntity<>("Đã xoá category thành công", HttpStatus.OK);
+    public Map<String, String> delete(@PathVariable Long id) {
+        return Map.of("message", categoryService.remove(id));
     }
 }

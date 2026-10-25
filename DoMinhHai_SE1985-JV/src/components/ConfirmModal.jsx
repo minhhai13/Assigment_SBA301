@@ -1,23 +1,19 @@
-import { Modal, Button } from "react-bootstrap";
+import { Modal, Button, Alert } from "react-bootstrap";
 
-export default function ConfirmModal({ show, onHide, onConfirm, title, message }) {
+export default function ConfirmModal({ show, onHide, onConfirm, title, message, confirmText = "Đồng ý", variant = "danger", error, children }) {
    return (
-      <Modal show={show} onHide={onHide} centered backdrop="static" contentClassName="dark-modal-content">
+      <Modal show={show} onHide={onHide} centered backdrop="static">
          <Modal.Header closeButton>
-            <Modal.Title className="text-danger fw-bold">
-               {title || "Xác nhận xóa"}
-            </Modal.Title>
+            <Modal.Title className="fw-bold fs-5">{title || "Xác nhận"}</Modal.Title>
          </Modal.Header>
          <Modal.Body>
-            <p className="mb-0 fs-5">{message || "Bạn có chắc chắn muốn thực hiện hành động này?"}</p>
+            {error && <Alert variant="danger">{error}</Alert>}
+            {message && <p className="mb-2">{message}</p>}
+            {children}
          </Modal.Body>
          <Modal.Footer>
-            <Button variant="outline-light" className="glow-on-hover" onClick={onHide}>
-               Hủy bỏ
-            </Button>
-            <Button variant="danger" className="glow-on-hover border-0" onClick={onConfirm}>
-               Đồng ý xóa
-            </Button>
+            <Button variant="outline-secondary" onClick={onHide}>Hủy bỏ</Button>
+            <Button variant={variant} onClick={onConfirm}>{confirmText}</Button>
          </Modal.Footer>
       </Modal>
    );
