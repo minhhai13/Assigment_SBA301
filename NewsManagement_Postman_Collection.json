@@ -1,0 +1,264 @@
+{
+	"info": {
+		"_postman_id": "news-management-sba301-jwt",
+		"name": "NewsManagement API - SBA301 (JWT & RBAC)",
+		"description": "Bộ Collection kiểm thử API Authentication, JWT và User Management cho dự án SBA301",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080"
+		},
+		{
+			"key": "adminToken",
+			"value": ""
+		},
+		{
+			"key": "staffToken",
+			"value": ""
+		}
+	],
+	"item": [
+		{
+			"name": "1. Authentication",
+			"item": [
+				{
+					"name": "1.1 Đăng nhập Admin (Lấy Token)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set('adminToken', jsonData.token);",
+									"    console.log('Admin Token đã được lưu tự động:', jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"Admin\",\n    \"password\": \"Admin\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Đăng nhập với tài khoản Admin để nhận token JWT có quyền ROLE_ADMIN"
+					}
+				},
+				{
+					"name": "1.2 Đăng nhập Staff (Lấy Token)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var jsonData = pm.response.json();",
+									"if (jsonData.token) {",
+									"    pm.collectionVariables.set('staffToken', jsonData.token);",
+									"    console.log('Staff Token đã được lưu tự động:', jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"Staff1\",\n    \"password\": \"123\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Đăng nhập với tài khoản Staff để nhận token JWT có quyền ROLE_STAFF"
+					}
+				},
+				{
+					"name": "1.3 Đăng nhập sai mật khẩu (Test 401)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"Admin\",\n    \"password\": \"sai_mat_khau\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/auth/login",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "auth", "login"]
+						},
+						"description": "Kiểm tra trả về 401 Unauthorized khi nhập sai mật khẩu"
+					}
+				}
+			]
+		},
+		{
+			"name": "2. User Management (Phân quyền & CRUD)",
+			"item": [
+				{
+					"name": "2.1 Lấy danh sách Users (Bằng Token Admin) - Kỳ vọng 200 OK",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"]
+						},
+						"description": "Admin dùng Bearer Token để lấy danh sách người dùng"
+					}
+				},
+				{
+					"name": "2.2 Lấy danh sách Users (Bằng Token Staff) - Kỳ vọng 403 Forbidden",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{staffToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"]
+						},
+						"description": "Test phân quyền: Staff không có quyền truy cập /api/users, hệ thống trả về 403 Forbidden"
+					}
+				},
+				{
+					"name": "2.3 Lấy danh sách Users (Không gửi Token) - Kỳ vọng 401 Unauthorized",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"]
+						},
+						"description": "Kiểm tra khi client chưa đăng nhập gọi vào API được bảo vệ"
+					}
+				},
+				{
+					"name": "2.4 Tạo người dùng mới (Admin) - Kỳ vọng 201 Created",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"test_staff\",\n    \"password\": \"123456\",\n    \"name\": \"Nguyễn Văn Test\",\n    \"role\": 2,\n    \"status\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users"]
+						},
+						"description": "Tạo tài khoản mới với mật khẩu tự động mã hóa BCrypt"
+					}
+				},
+				{
+					"name": "2.5 Xem chi tiết người dùng theo ID (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "1"]
+						}
+					}
+				},
+				{
+					"name": "2.6 Cập nhật thông tin người dùng (Admin)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"Đỗ Minh Hải (Đã cập nhật)\",\n    \"role\": 1,\n    \"status\": 1\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/users/1",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "1"]
+						}
+					}
+				},
+				{
+					"name": "2.7 Xóa người dùng theo ID (Admin)",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{adminToken}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/users/2",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "users", "2"]
+						}
+					}
+				}
+			]
+		}
+	]
+}
